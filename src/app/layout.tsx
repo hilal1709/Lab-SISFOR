@@ -4,6 +4,11 @@ import { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'SISFOR Lab - Sistem Pemesanan',
   description: 'Sistem pemesanan dan manajemen laboratorium',
+  icons: {
+    icon: '/Sitem Informasi (2) (2).png',
+    shortcut: '/Sitem Informasi (2) (2).png',
+    apple: '/Sitem Informasi (2) (2).png',
+  },
 }
 
 export default function RootLayout({
