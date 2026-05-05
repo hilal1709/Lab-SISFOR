@@ -1,0 +1,123 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL,GRAD@100..700,0..1,0&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #0f0f0f;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+}
+
+.font-space {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined', sans-serif;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  line-height: 1;
+}
+
+.material-symbols-outlined.filled {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Neo Brutalism Styles */
+.neo-brutalism {
+  border: 3px solid #000;
+  background-color: #ffffff;
+  color: #000;
+  position: relative;
+}
+
+.neo-brutalism-dark {
+  border: 3px solid #a3e635;
+  background-color: #1a1a1a;
+  color: #a3e635;
+}
+
+.neo-brutalism-interactive {
+  transition: all 0.1s ease;
+}
+
+.neo-brutalism-interactive:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: 4px 4px 0px #a3e635;
+}
+
+.neo-brutalism-interactive:active {
+  transform: translate(0px, 0px);
+  box-shadow: 0px 0px 0px #a3e635;
+}
+
+/* Grid Background */
+.grid-background {
+  background-image:
+    linear-gradient(rgba(163, 230, 53, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(163, 230, 53, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(163, 230, 53, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(163, 230, 53, 0);
+  }
+}
+
+.animate-slideIn {
+  animation: slideIn 0.6s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+/* Admin login — neo-brutalist (matches design system) */
+.neo-shadow {
+  box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.neo-shadow-sm {
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.neo-interactive:active {
+  transform: translate(4px, 4px);
+  box-shadow: none;
+}
+
+.admin-login-grid {
+  background-color: #f9f9f9;
+  background-image:
+    linear-gradient(#e2e2e2 1px, transparent 1px),
+    linear-gradient(90deg, #e2e2e2 1px, transparent 1px);
+  background-size: 32px 32px;
+}
