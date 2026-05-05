@@ -388,23 +388,25 @@ function BookingPageContent() {
               </div>
 
               <div className="success-item mt-6 grid gap-4 border-[4px] border-black bg-white p-4 md:grid-cols-2">
-                <div className="break-all">
+                <div className="min-w-0 break-all">
                   <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#444933]">Tanggal</div>
                   <div className="mt-2 text-lg font-bold uppercase">{selectedDateLabel}</div>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#444933]">Waktu</div>
                   <div className="mt-2 text-lg font-bold uppercase">
                     {submittedBooking.timeSlot ? getLabTimeSlotLabel(submittedBooking.timeSlot) : '-'}
                   </div>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#444933]">ID Pemesanan</div>
-                  <div className="mt-2 text-lg font-bold uppercase">{submittedBooking.id}</div>
+                  <div className="mt-2 break-all text-sm font-mono font-bold leading-snug md:text-base">
+                    {submittedBooking.id}
+                  </div>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#444933]">Status</div>
-                  <div className="mt-2 text-lg font-bold uppercase">
+                  <div className="mt-2 text-lg font-bold uppercase leading-snug">
                     {bookingStatusText[submittedBooking.status] ?? submittedBooking.status}
                   </div>
                 </div>
