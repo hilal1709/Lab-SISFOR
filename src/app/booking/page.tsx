@@ -151,14 +151,25 @@ function BookingPageContent() {
       })
 
       if (!response.ok) {
-        throw new Error('Gagal mengirim pemesanan')
+        let message = 'Gagal mengirim pemesanan'
+        try {
+          const payload = (await response.json()) as { error?: string }
+          if (payload?.error) {
+            message = payload.error
+          }
+        } catch {
+          // Keep default message if response is not JSON.
+        }
+        throw new Error(message)
       }
 
       const booking = (await response.json()) as BookingRecord
       setSubmittedBooking(booking)
     } catch (error) {
       console.error('Error submitting booking:', error)
-      setErrorMessage('Pengiriman pemesanan gagal. Silakan coba lagi.')
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Pengiriman pemesanan gagal. Silakan coba lagi.'
+      )
     } finally {
       setIsSubmitting(false)
     }

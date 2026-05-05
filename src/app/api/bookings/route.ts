@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isValidLabTimeSlot } from '@/lib/lab-time-slots'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,18 +36,31 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    const fullName = typeof body.fullName === 'string' ? body.fullName.trim() : ''
+    const studentId = typeof body.studentId === 'string' ? body.studentId.trim() : ''
+    const purpose = typeof body.purpose === 'string' ? body.purpose.trim() : ''
+    const timeSlot = typeof body.timeSlot === 'string' ? body.timeSlot.trim() : ''
+    const date = typeof body.date === 'string' ? new Date(`${body.date}T00:00:00Z`) : new Date('')
 
-    if (typeof body.timeSlot !== 'string' || !isValidLabTimeSlot(body.timeSlot.trim())) {
+    if (!fullName || !studentId || !purpose) {
+      return NextResponse.json({ error: 'Semua field wajib diisi' }, { status: 400 })
+    }
+
+    if (!isValidLabTimeSlot(timeSlot)) {
       return NextResponse.json({ error: 'Sesi waktu tidak valid' }, { status: 400 })
+    }
+
+    if (Number.isNaN(date.getTime())) {
+      return NextResponse.json({ error: 'Tanggal tidak valid' }, { status: 400 })
     }
 
     const booking = await prisma.booking.create({
       data: {
-        fullName: body.fullName,
-        studentId: body.studentId,
-        date: new Date(body.date),
-        timeSlot: body.timeSlot.trim(),
-        purpose: body.purpose,
+        fullName,
+        studentId,
+        date,
+        timeSlot,
+        purpose,
         status: 'pending',
       },
     })
@@ -54,6 +68,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(booking, { status: 201 })
   } catch (error) {
     console.error('POST booking error:', error)
+    if (error instanceof Prisma.PrismaClientInitializationError) {
+      return NextResponse.json(
+        { error: 'Koneksi database gagal. Cek DATABASE_URL di deployment.' },
+        { status: 500 }
+      )
+    }
     return NextResponse.json({ error: 'Gagal membuat pemesanan' }, { status: 500 })
   }
 }
