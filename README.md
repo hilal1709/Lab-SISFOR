@@ -45,10 +45,11 @@ CREATE DATABASE sisfor_lab;
 
 ### 3. Configure Environment
 
-Edit `.env.local`:
+Edit `.env.local` (use the same connection string for both vars in local dev):
 
 ```
-DATABASE_URL="postgresql://postgres:hilal123@localhost:5432/sisfor_lab"
+POSTGRES_PRISMA_URL="postgresql://postgres:hilal123@localhost:5432/sisfor_lab"
+POSTGRES_URL_NON_POOLING="postgresql://postgres:hilal123@localhost:5432/sisfor_lab"
 NEXTAUTH_SECRET="your-secret-key-generate-with-openssl-rand-base64-32"
 ```
 
@@ -213,9 +214,10 @@ colors: {
 
 ### Change PostgreSQL Credentials
 
-Update `.env.local`:
+Update `.env.local` (local dev only; on Vercel Postgres these are auto-provided):
 ```
-DATABASE_URL="postgresql://username:password@localhost:5432/database_name"
+POSTGRES_PRISMA_URL="postgresql://username:password@localhost:5432/database_name"
+POSTGRES_URL_NON_POOLING="postgresql://username:password@localhost:5432/database_name"
 ```
 
 ### Modify Time Slots
