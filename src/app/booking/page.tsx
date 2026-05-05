@@ -96,6 +96,8 @@ function BookingPageContent() {
   const [submittedBooking, setSubmittedBooking] = useState<BookingRecord | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [korinFile, setKorinFile] = useState<File | null>(null)
+  const [ktmFile, setKtmFile] = useState<File | null>(null)
 
   const successRef = useRef<HTMLDivElement>(null)
 
@@ -136,18 +138,33 @@ function BookingPageContent() {
     }))
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, files } = e.target
+    if (!files || files.length === 0) return
+    const f = files[0]
+    if (name === 'korin') setKorinFile(f)
+    if (name === 'ktm') setKtmFile(f)
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setErrorMessage('')
     setIsSubmitting(true)
 
     try {
+      // Use FormData so file uploads are supported. Text fields are appended as strings.
+      const fd = new FormData()
+      fd.append('fullName', formData.fullName)
+      fd.append('studentId', formData.studentId)
+      fd.append('date', formData.date)
+      fd.append('timeSlot', formData.timeSlot)
+      fd.append('purpose', formData.purpose)
+      if (korinFile) fd.append('korin', korinFile)
+      if (ktmFile) fd.append('ktm', ktmFile)
+
       const response = await fetch('/api/bookings', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+        body: fd,
       })
 
       if (!response.ok) {
@@ -341,6 +358,34 @@ function BookingPageContent() {
                     rows={4}
                     placeholder="JELASKAN KEBUTUHAN EKSPERIMEN ATAU RISET ANDA..."
                     className="w-full resize-none border-[4px] border-black bg-white p-3 text-base font-medium uppercase outline-none transition-all placeholder:text-black/35 focus:bg-[#ccff00]/10"
+                  />
+                </div>
+
+                <div className="booking-field flex flex-col gap-2">
+                  <label htmlFor="korin" className="text-sm font-bold uppercase tracking-[0.14em] text-black">
+                    Unggah Surat Korin (PDF / DOC)
+                  </label>
+                  <input
+                    id="korin"
+                    name="korin"
+                    type="file"
+                    accept=".pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    onChange={handleFileChange}
+                    className="w-full border-[4px] border-black bg-white p-3 text-base font-medium outline-none transition-all"
+                  />
+                </div>
+
+                <div className="booking-field flex flex-col gap-2">
+                  <label htmlFor="ktm" className="text-sm font-bold uppercase tracking-[0.14em] text-black">
+                    Unggah Foto KTM (JPG / PNG)
+                  </label>
+                  <input
+                    id="ktm"
+                    name="ktm"
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    onChange={handleFileChange}
+                    className="w-full border-[4px] border-black bg-white p-3 text-base font-medium outline-none transition-all"
                   />
                 </div>
 

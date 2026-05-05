@@ -35,12 +35,47 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const fullName = typeof body.fullName === 'string' ? body.fullName.trim() : ''
-    const studentId = typeof body.studentId === 'string' ? body.studentId.trim() : ''
-    const purpose = typeof body.purpose === 'string' ? body.purpose.trim() : ''
-    const timeSlot = typeof body.timeSlot === 'string' ? body.timeSlot.trim() : ''
-    const date = typeof body.date === 'string' ? new Date(`${body.date}T00:00:00Z`) : new Date('')
+    let fullName = ''
+    let studentId = ''
+    let purpose = ''
+    let timeSlot = ''
+    let date = new Date('')
+    let korinFilename: string | undefined
+    let korinData: string | undefined
+    let ktmFilename: string | undefined
+    let ktmData: string | undefined
+
+    const contentType = request.headers.get('content-type') || ''
+    if (contentType.includes('multipart/form-data')) {
+      const fd = await request.formData()
+      fullName = (fd.get('fullName') as string) || ''
+      studentId = (fd.get('studentId') as string) || ''
+      purpose = (fd.get('purpose') as string) || ''
+      timeSlot = (fd.get('timeSlot') as string) || ''
+      const dateStr = (fd.get('date') as string) || ''
+      date = typeof dateStr === 'string' ? new Date(`${dateStr}T00:00:00Z`) : new Date('')
+
+      const korin = fd.get('korin') as File | null
+      if (korin && typeof (korin as any).arrayBuffer === 'function') {
+        const buf = Buffer.from(await korin.arrayBuffer())
+        korinData = `data:${korin.type};base64,${buf.toString('base64')}`
+        korinFilename = (korin as any).name
+      }
+
+      const ktm = fd.get('ktm') as File | null
+      if (ktm && typeof (ktm as any).arrayBuffer === 'function') {
+        const buf = Buffer.from(await ktm.arrayBuffer())
+        ktmData = `data:${ktm.type};base64,${buf.toString('base64')}`
+        ktmFilename = (ktm as any).name
+      }
+    } else {
+      const body = await request.json()
+      fullName = typeof body.fullName === 'string' ? body.fullName.trim() : ''
+      studentId = typeof body.studentId === 'string' ? body.studentId.trim() : ''
+      purpose = typeof body.purpose === 'string' ? body.purpose.trim() : ''
+      timeSlot = typeof body.timeSlot === 'string' ? body.timeSlot.trim() : ''
+      date = typeof body.date === 'string' ? new Date(`${body.date}T00:00:00Z`) : new Date('')
+    }
 
     if (!fullName || !studentId || !purpose) {
       return NextResponse.json({ error: 'Semua field wajib diisi' }, { status: 400 })
@@ -62,6 +97,10 @@ export async function POST(request: NextRequest) {
         timeSlot,
         purpose,
         status: 'pending',
+        ...(korinFilename && { korinFilename }),
+        ...(korinData && { korinData }),
+        ...(ktmFilename && { ktmFilename }),
+        ...(ktmData && { ktmData }),
       },
     })
 

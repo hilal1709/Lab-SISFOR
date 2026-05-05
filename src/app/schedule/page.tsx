@@ -7,13 +7,17 @@ import { LAB_TIME_SLOT_VALUES } from '@/lib/lab-time-slots'
 import { Beaker, CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Home } from 'lucide-react'
 
 interface Booking {
+  id?: string
   date: string
   timeSlot: string
+  fullName?: string
+  purpose?: string
+  status?: string
 }
 
 export default function SchedulePage() {
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date())
-  const [bookedSlots, setBookedSlots] = useState<string[]>([])
+  const [bookedSlotsMap, setBookedSlotsMap] = useState<Record<string, Booking | undefined>>({})
 
   // Fetch bookings for selected date
   useEffect(() => {
@@ -27,9 +31,15 @@ export default function SchedulePage() {
           cache: 'no-store',
         })
         if (response.ok) {
-          const data = await response.json()
-          const bookedTimes = data.map((booking: Booking) => booking.timeSlot)
-          setBookedSlots(bookedTimes)
+          const data = (await response.json()) as Booking[]
+          // Only consider bookings that are not rejected
+          const activeBookings = data.filter(b => b.status !== 'rejected')
+          const map: Record<string, Booking> = {}
+          for (const b of activeBookings) {
+            // If multiple bookings somehow exist for the same slot, keep the first
+            if (!map[b.timeSlot]) map[b.timeSlot] = b
+          }
+          setBookedSlotsMap(map)
         }
       } catch (error) {
         if (error instanceof Error && error.name !== 'AbortError') {
@@ -43,7 +53,7 @@ export default function SchedulePage() {
     return () => controller.abort()
   }, [currentDate])
 
-  const bookedSlotSet = useMemo(() => new Set(bookedSlots), [bookedSlots])
+  const bookedSlotSet = useMemo(() => new Set(Object.keys(bookedSlotsMap)), [bookedSlotsMap])
 
   const formatDate = (date: Date): string => {
     return date.toLocaleDateString('id-ID', {
@@ -136,6 +146,7 @@ export default function SchedulePage() {
         <div className="flex flex-col gap-4">
           {LAB_TIME_SLOT_VALUES.map((slot) => {
             const isBooked = bookedSlotSet.has(slot)
+            const booking = bookedSlotsMap[slot]
             const dateStr = formatDateForQuery(currentDate)
 
             return (
@@ -155,9 +166,18 @@ export default function SchedulePage() {
                       : 'bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:translate-x-1 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
                   }`}
                 >
-                  <span className={`text-xl font-black tracking-tight sm:text-2xl md:text-3xl ${isBooked ? 'line-through text-gray-600' : 'text-black'}`}>
-                    {slot}
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <span className={`text-xl font-black tracking-tight sm:text-2xl md:text-3xl ${isBooked ? 'line-through text-gray-600' : 'text-black'}`}>
+                      {slot}
+                    </span>
+                    {isBooked && booking ? (
+                      <div className="mt-2 text-sm text-gray-700 truncate">
+                        <span className="font-bold">{booking.fullName}</span>
+                        <span className="mx-2">—</span>
+                        <span className="">{booking.purpose}</span>
+                      </div>
+                    ) : null}
+                  </div>
                   <div
                     className={`w-full border-2 border-black px-4 py-2 text-center sm:w-auto ${
                       isBooked
@@ -165,8 +185,8 @@ export default function SchedulePage() {
                         : 'bg-[#ccff00] text-black'
                     }`}
                   >
-            <span className="font-black text-sm uppercase tracking-wider">
-              {isBooked ? 'TERPESAN' : 'TERSEDIA'}
+                    <span className="font-black text-sm uppercase tracking-wider">
+                      {isBooked ? 'TERPESAN' : 'TERSEDIA'}
                     </span>
                   </div>
                 </Link>
