@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { LAB_TIME_SLOT_VALUES } from '@/lib/lab-time-slots'
-import { Beaker, CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Home } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Home } from 'lucide-react'
 
 interface Booking {
   id?: string
@@ -107,14 +107,7 @@ export default function SchedulePage() {
       </nav>
 
       {/* Mobile Header */}
-      <header className="md:hidden sticky top-0 z-40 bg-white border-b-4 border-black flex justify-between items-center px-6 py-4">
-        <button
-          type="button"
-          className="rounded border-2 border-black p-2 transition-colors hover:bg-lime-400 hover:text-black"
-          aria-label="Menu"
-        >
-          <Beaker className="h-7 w-7 text-black" strokeWidth={2.25} />
-        </button>
+      <header className="md:hidden sticky top-0 z-40 bg-white border-b-4 border-black flex justify-center items-center px-6 py-4">
         <Image
           src="/sitem informasi(2).png"
           alt="SISFOR logo"
@@ -123,7 +116,6 @@ export default function SchedulePage() {
           className="h-9 w-auto"
           priority
         />
-        <div className="h-11 w-11" aria-hidden />
       </header>
 
       {/* Main Content */}
