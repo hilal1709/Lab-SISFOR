@@ -7,6 +7,7 @@ import {
   CalendarDays,
   ClipboardList,
   Home as HomeIcon,
+  Search,
 } from 'lucide-react'
 
 type GalleryItem = {
@@ -57,6 +58,9 @@ export default function HomePage() {
           </Link>
           <Link href="/booking" className="font-black uppercase tracking-tight text-gray-500 hover:bg-lime-400 hover:text-black transition-colors px-2 py-1">
             Pemesanan
+          </Link>
+          <Link href="/status" className="font-black uppercase tracking-tight text-gray-500 hover:bg-lime-400 hover:text-black transition-colors px-2 py-1">
+            Cek Status
           </Link>
         </div>
       </nav>
@@ -157,6 +161,13 @@ export default function HomePage() {
         >
           <ClipboardList className="h-6 w-6" strokeWidth={2.25} aria-hidden />
           <span className="mt-1 text-xs uppercase">Pemesanan</span>
+        </Link>
+        <Link
+          href="/status"
+          className="flex w-20 flex-col items-center justify-center p-2 text-black transition-colors hover:bg-gray-100"
+        >
+          <Search className="h-6 w-6" strokeWidth={2.25} aria-hidden />
+          <span className="mt-1 text-xs uppercase">Status</span>
         </Link>
       </nav>
 

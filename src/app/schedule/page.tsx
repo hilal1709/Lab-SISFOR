@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { LAB_TIME_SLOT_VALUES } from '@/lib/lab-time-slots'
-import { CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Home } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Home, Search } from 'lucide-react'
 
 interface Booking {
   id?: string
@@ -102,6 +102,9 @@ export default function SchedulePage() {
           </Link>
           <Link href="/booking" className="font-black uppercase tracking-tight text-gray-500 hover:bg-lime-400 hover:text-black transition-colors px-2 py-1">
             Pemesanan
+          </Link>
+          <Link href="/status" className="font-black uppercase tracking-tight text-gray-500 hover:bg-lime-400 hover:text-black transition-colors px-2 py-1">
+            Cek Status
           </Link>
         </div>
       </nav>
@@ -214,6 +217,13 @@ export default function SchedulePage() {
         >
           <ClipboardList className="mb-1 h-6 w-6" strokeWidth={2.25} aria-hidden />
           <span className="font-black text-xs uppercase">Pemesanan</span>
+        </Link>
+        <Link
+          href="/status"
+          className="flex h-full w-full flex-col items-center justify-center p-2 text-black transition-colors hover:bg-gray-100"
+        >
+          <Search className="mb-1 h-6 w-6" strokeWidth={2.25} aria-hidden />
+          <span className="font-black text-xs uppercase">Status</span>
         </Link>
       </nav>
     </div>
