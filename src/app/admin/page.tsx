@@ -69,6 +69,7 @@ export default function AdminPage() {
           id: string
           fullName: string
           studentId: string
+          prodi: string
           date: string
           timeSlot: string
           purpose: string
@@ -377,7 +378,7 @@ export default function AdminPage() {
                         {statusText[booking.status]}
                       </span>
                     </div>
-                    <div className="col-span-1 flex flex-col gap-2 sm:flex-row lg:col-span-1 lg:justify-end"
+                    <div className="col-span-1 flex flex-col gap-2 sm:flex-row lg:col-span-1 lg:justify-end">
                       {booking.status === 'pending' ? (
                         <>
                           <button
