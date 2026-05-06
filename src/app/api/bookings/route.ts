@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
   try {
     let fullName = ''
     let studentId = ''
+    let prodi = ''
     let purpose = ''
     let timeSlot = ''
     let date = new Date('')
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
       const fd = await request.formData()
       fullName = (fd.get('fullName') as string) || ''
       studentId = (fd.get('studentId') as string) || ''
+      prodi = (fd.get('prodi') as string) || ''
       purpose = (fd.get('purpose') as string) || ''
       timeSlot = (fd.get('timeSlot') as string) || ''
       const dateStr = (fd.get('date') as string) || ''
@@ -72,12 +74,13 @@ export async function POST(request: NextRequest) {
       const body = await request.json()
       fullName = typeof body.fullName === 'string' ? body.fullName.trim() : ''
       studentId = typeof body.studentId === 'string' ? body.studentId.trim() : ''
+      prodi = typeof body.prodi === 'string' ? body.prodi.trim() : ''
       purpose = typeof body.purpose === 'string' ? body.purpose.trim() : ''
       timeSlot = typeof body.timeSlot === 'string' ? body.timeSlot.trim() : ''
       date = typeof body.date === 'string' ? new Date(`${body.date}T00:00:00Z`) : new Date('')
     }
 
-    if (!fullName || !studentId || !purpose) {
+    if (!fullName || !studentId || !prodi || !purpose) {
       return NextResponse.json({ error: 'Semua field wajib diisi' }, { status: 400 })
     }
 
@@ -93,6 +96,7 @@ export async function POST(request: NextRequest) {
       data: {
         fullName,
         studentId,
+        prodi,
         date,
         timeSlot,
         purpose,

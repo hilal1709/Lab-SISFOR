@@ -14,6 +14,7 @@ model Booking {
   id        String     @id @default(cuid())
   fullName  String
   studentId String
+  prodi     String
   date      DateTime
   timeSlot  String
   purpose   String

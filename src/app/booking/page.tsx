@@ -16,6 +16,7 @@ type BookingFormState = {
   date: string
   timeSlot: string
   purpose: string
+  prodi: string
 }
 
 type BookingRecord = BookingFormState & {
@@ -91,6 +92,7 @@ function BookingPageContent() {
       date,
       timeSlot,
       purpose: '',
+      prodi: '',
     }
   })
   const [submittedBooking, setSubmittedBooking] = useState<BookingRecord | null>(null)
@@ -159,6 +161,7 @@ function BookingPageContent() {
       fd.append('date', formData.date)
       fd.append('timeSlot', formData.timeSlot)
       fd.append('purpose', formData.purpose)
+      fd.append('prodi', formData.prodi)
       if (korinFile) fd.append('korin', korinFile)
       if (ktmFile) fd.append('ktm', ktmFile)
 
@@ -301,7 +304,34 @@ function BookingPageContent() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div className="booking-field flex flex-col gap-2">
+                  <label htmlFor="prodi" className="text-sm font-bold uppercase tracking-[0.14em] text-black">
+                    Program Studi
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="prodi"
+                      name="prodi"
+                      value={formData.prodi}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full cursor-pointer appearance-none border-[4px] border-black bg-white p-3 pr-10 text-base font-medium uppercase outline-none transition-all focus:bg-[#ccff00]/10"
+                    >
+                      <option value="">PILIH PROGRAM STUDI</option>
+                      <option value="akuntansi">AKUNTANSI</option>
+                      <option value="manajemen-bisnis-islam">MANAJEMEN BISNIS ISLAM</option>
+                      <option value="manajemen">MANAJEMEN</option>
+                      <option value="manajemen-rekayasa">MANAJEMEN REKAYASA</option>
+                      <option value="teknik-logistik">TEKNIK LOGISTIK</option>
+                      <option value="teknik-kimia">TEKNIK KIMIA</option>
+                      <option value="teknologi-agroindustri">TEKNOLOGI AGROINDUSTRI</option>
+                      <option value="desain-komunikasi-visual">DESAIN KOMUNIKASI VISUAL</option>
+                      <option value="informatika">INFORMATIKA</option>
+                      <option value="sistem-informasi">SISTEM INFORMASI</option>
+                    </select>
+                    <Clock3 className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
+                  </div>
+                </div>
                   <div className="booking-field flex flex-col gap-2">
                     <label htmlFor="date" className="text-sm font-bold uppercase tracking-[0.14em] text-black">
                       Tanggal
@@ -361,19 +391,21 @@ function BookingPageContent() {
                   />
                 </div>
 
-                <div className="booking-field flex flex-col gap-2">
-                  <label htmlFor="korin" className="text-sm font-bold uppercase tracking-[0.14em] text-black">
-                    Unggah Surat Korin (PDF / DOC)
-                  </label>
-                  <input
-                    id="korin"
-                    name="korin"
-                    type="file"
-                    accept=".pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    onChange={handleFileChange}
-                    className="w-full border-[4px] border-black bg-white p-3 text-base font-medium outline-none transition-all"
-                  />
-                </div>
+                {formData.prodi !== 'sistem-informasi' && (
+                  <div className="booking-field flex flex-col gap-2">
+                    <label htmlFor="korin" className="text-sm font-bold uppercase tracking-[0.14em] text-black">
+                      Unggah Surat Korin (PDF / DOC)
+                    </label>
+                    <input
+                      id="korin"
+                      name="korin"
+                      type="file"
+                      accept=".pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      onChange={handleFileChange}
+                      className="w-full border-[4px] border-black bg-white p-3 text-base font-medium outline-none transition-all"
+                    />
+                  </div>
+                )}
 
                 <div className="booking-field flex flex-col gap-2">
                   <label htmlFor="ktm" className="text-sm font-bold uppercase tracking-[0.14em] text-black">

@@ -14,6 +14,7 @@ type Booking = {
   id: string
   fullName: string
   studentId: string
+  prodi: string
   date: string
   timeSlot: string
   purpose: string
@@ -115,6 +116,7 @@ export default function AdminPage() {
       [
         booking.fullName,
         booking.studentId,
+        booking.prodi,
         booking.purpose,
         booking.timeSlot,
         statusText[booking.status],
@@ -322,11 +324,12 @@ export default function AdminPage() {
               </div>
 
               <div className="hidden grid-cols-12 gap-4 border-b-2 border-black bg-surface-container-low p-4 text-label-bold font-label-bold uppercase text-on-surface-variant lg:grid">
-                <div className="col-span-3">Nama / NIM</div>
+                <div className="col-span-2">Nama / NIM</div>
+                <div className="col-span-2">Prodi</div>
                 <div className="col-span-2">Tanggal</div>
                 <div className="col-span-2">Waktu</div>
-                <div className="col-span-2">Status</div>
-                <div className="col-span-3 text-right">Aksi</div>
+                <div className="col-span-1">Status</div>
+                <div className="col-span-1 text-right">Aksi</div>
               </div>
 
               <div className="flex flex-col">
@@ -339,13 +342,19 @@ export default function AdminPage() {
                         : 'bg-surface-container-low'
                     } hover:bg-surface-container-low`}
                   >
-                    <div className="col-span-1 lg:col-span-3">
+                    <div className="col-span-1 lg:col-span-2">
                       <div className="text-body-lg font-body-lg font-bold text-on-surface">
                         {booking.fullName}
                       </div>
                       <div className="text-label-mono font-label-mono text-on-surface-variant">
                         {booking.studentId}
                       </div>
+                    </div>
+                    <div className="col-span-1 flex items-center gap-2 lg:col-span-2">
+                      <span className="material-symbols-outlined text-outline lg:hidden">school</span>
+                      <span className="text-body-md font-body-md font-bold uppercase">
+                        {booking.prodi}
+                      </span>
                     </div>
                     <div className="col-span-1 flex items-center gap-2 lg:col-span-2">
                       <span className="material-symbols-outlined text-outline lg:hidden">calendar_today</span>
@@ -359,7 +368,7 @@ export default function AdminPage() {
                         {getLabTimeSlotLabel(booking.timeSlot)}
                       </span>
                     </div>
-                    <div className="col-span-1 lg:col-span-2">
+                    <div className="col-span-1 lg:col-span-1">
                       <span
                         className={`inline-block border-2 border-black px-3 py-1 text-[10px] font-bold uppercase ${
                           statusBadge[booking.status]
@@ -368,7 +377,7 @@ export default function AdminPage() {
                         {statusText[booking.status]}
                       </span>
                     </div>
-                    <div className="col-span-1 flex flex-col gap-2 sm:flex-row lg:col-span-3 lg:justify-end">
+                    <div className="col-span-1 flex flex-col gap-2 sm:flex-row lg:col-span-1 lg:justify-end"
                       {booking.status === 'pending' ? (
                         <>
                           <button
