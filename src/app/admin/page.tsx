@@ -166,16 +166,36 @@ export default function AdminPage() {
     })
   }, [filteredBookings.length])
 
-  const handleApprove = (id: string) => {
-    setBookings(current =>
-      current.map(booking =>
-        booking.id === id ? { ...booking, status: 'approved' } : booking
+  const handleApprove = async (id: string) => {
+    try {
+      const response = await fetch(`/api/bookings/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'approved' }),
+      })
+      if (!response.ok) return
+
+      setBookings(current =>
+        current.map(booking =>
+          booking.id === id ? { ...booking, status: 'approved' } : booking
+        )
       )
-    )
+    } catch (error) {
+      console.error('Error approving booking:', error)
+    }
   }
 
-  const handleDelete = (id: string) => {
-    setBookings(current => current.filter(booking => booking.id !== id))
+  const handleDelete = async (id: string) => {
+    try {
+      const response = await fetch(`/api/bookings/${id}`, {
+        method: 'DELETE',
+      })
+      if (!response.ok) return
+
+      setBookings(current => current.filter(booking => booking.id !== id))
+    } catch (error) {
+      console.error('Error deleting booking:', error)
+    }
   }
 
   const handleLogout = async () => {

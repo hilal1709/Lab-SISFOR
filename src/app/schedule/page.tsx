@@ -115,7 +115,14 @@ export default function SchedulePage() {
         >
           <Beaker className="h-7 w-7 text-black" strokeWidth={2.25} />
         </button>
-        <div className="text-2xl font-black uppercase tracking-tighter text-black">SISFOR</div>
+        <Image
+          src="/sitem informasi(2).png"
+          alt="SISFOR logo"
+          width={180}
+          height={50}
+          className="h-9 w-auto"
+          priority
+        />
         <div className="h-11 w-11" aria-hidden />
       </header>
 
