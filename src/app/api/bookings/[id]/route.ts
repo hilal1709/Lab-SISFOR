@@ -1,73 +1,106 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { isValidLabTimeSlot } from '@/lib/lab-time-slots'
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
+import { parseLabTimeSlots } from '@/lib/lab-time-slots'
+import { requireAdmin } from '@/lib/auth'
+import { bookingTimeSlots, receiptFields, withBookingTimeSlots } from '@/lib/booking'
+import { bookingDay, bookingTransaction, findBookingConflict } from '@/lib/booking-db'
+import { validDate } from '@/lib/lab-date'
 
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export const dynamic = 'force-dynamic'
+type Context = { params: { id: string } }
+
+const patchFields = z.object({
+  fullName: z.string().trim().min(1).optional(),
+  studentId: z.string().trim().min(1).optional(),
+  borrowerId: z.string().trim().min(1).optional(),
+  borrowerType: z.enum(['mahasiswa', 'dosen']).optional(),
+  prodi: z.string().trim().min(1).optional(),
+  purpose: z.string().trim().min(1).optional(),
+  status: z.enum(['pending', 'approved', 'rejected']).optional(),
+  timeSlot: z.string().optional(),
+  timeSlots: z.array(z.string()).optional(),
+  date: z.string().optional(),
+})
+
+export async function GET(_request: NextRequest, { params }: Context) {
   try {
     const booking = await prisma.booking.findUnique({
       where: { id: params.id },
+      select: receiptFields,
     })
-
-    if (!booking) {
-      return NextResponse.json({ error: 'Pemesanan tidak ditemukan' }, { status: 404 })
-    }
-
-    return NextResponse.json(booking)
-  } catch (error) {
-    console.error('GET booking error:', error)
-    return NextResponse.json({ error: 'Gagal mengambil data pemesanan' }, { status: 500 })
+    return booking
+      ? NextResponse.json(withBookingTimeSlots(booking))
+      : NextResponse.json({ error: 'ID peminjaman tidak ditemukan.' }, { status: 404 })
+  } catch {
+    return NextResponse.json({ error: 'Status belum bisa dimuat. Coba lagi.' }, { status: 503 })
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, { params }: Context) {
+  const denied = await requireAdmin()
+  if (denied) return denied
   try {
-    const body = await request.json()
+    const parsed = patchFields.safeParse(await request.json().catch(() => null))
+    if (!parsed.success)
+      return NextResponse.json({ error: 'Data perubahan tidak valid.' }, { status: 400 })
+    const body = parsed.data
+    const requestedSlots = body.timeSlots ?? (body.timeSlot === undefined ? undefined : [body.timeSlot])
+    const timeSlots = parseLabTimeSlots(requestedSlots)
+    if (requestedSlots && !timeSlots)
+      return NextResponse.json({ error: 'Sesi tidak valid.' }, { status: 400 })
+    const day = body.date?.slice(0, 10)
+    if (body.date !== undefined && (!day || !validDate(day) || !Number.isFinite(Date.parse(body.date))))
+      return NextResponse.json({ error: 'Tanggal tidak valid.' }, { status: 400 })
+    const result = await bookingTransaction(async (tx) => {
+      const current = await tx.booking.findUnique({ where: { id: params.id }, select: receiptFields })
+      if (!current) return { error: 'ID peminjaman tidak ditemukan.', status: 404 }
+      const currentSlots = bookingTimeSlots(current)
+      if (currentSlots.length > 1 && body.timeSlot !== undefined && body.timeSlots === undefined)
+        return { error: 'Kirim daftar sesi untuk mengubah pengajuan beberapa sesi.', status: 400 }
 
-    if (body.timeSlot !== undefined) {
-      const slot = typeof body.timeSlot === 'string' ? body.timeSlot.trim() : ''
-      if (!isValidLabTimeSlot(slot)) {
-        return NextResponse.json({ error: 'Sesi waktu tidak valid' }, { status: 400 })
+      const status = body.status ?? current.status
+      if (status !== 'rejected' && (day || timeSlots || current.status === 'rejected')) {
+        const targetDay = day ?? current.date.toISOString().slice(0, 10)
+        if (await findBookingConflict(tx, targetDay, timeSlots ?? currentSlots, current.id))
+          return { error: 'Salah satu sesi sudah terisi. Pilih sesi lain.', status: 409 }
       }
-      body.timeSlot = slot
-    }
 
-    const booking = await prisma.booking.update({
-      where: { id: params.id },
-      data: {
-        ...(body.fullName && { fullName: body.fullName }),
-        ...(body.studentId && { studentId: body.studentId }),
-        ...(body.date && { date: new Date(body.date) }),
-        ...(body.timeSlot && { timeSlot: body.timeSlot }),
-        ...(body.purpose && { purpose: body.purpose }),
-        ...(body.status && { status: body.status }),
-      },
+      const booking = await tx.booking.update({
+        where: { id: current.id },
+        data: {
+          fullName: body.fullName,
+          studentId: body.borrowerId ?? body.studentId,
+          borrowerType: body.borrowerType,
+          prodi: body.prodi,
+          purpose: body.purpose,
+          status: body.status,
+          timeSlot: timeSlots?.[0],
+          timeSlots: timeSlots ?? undefined,
+          date: day ? bookingDay(day).gte : undefined,
+        },
+        select: receiptFields,
+      })
+      return { booking }
     })
-
-    return NextResponse.json(booking)
-  } catch (error) {
-    console.error('PATCH booking error:', error)
-    return NextResponse.json({ error: 'Gagal memperbarui pemesanan' }, { status: 500 })
+    return result.booking
+      ? NextResponse.json(withBookingTimeSlots(result.booking))
+      : NextResponse.json({ error: result.error }, { status: result.status })
+  } catch {
+    return NextResponse.json({ error: 'Perubahan belum tersimpan. Coba lagi.' }, { status: 503 })
   }
 }
 
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(_request: NextRequest, { params }: Context) {
+  const denied = await requireAdmin()
+  if (denied) return denied
   try {
-    const booking = await prisma.booking.delete({
-      where: { id: params.id },
-    })
-
-    return NextResponse.json(booking)
-  } catch (error) {
-    console.error('DELETE booking error:', error)
-    return NextResponse.json({ error: 'Gagal menghapus pemesanan' }, { status: 500 })
+    await prisma.booking.delete({ where: { id: params.id }, select: { id: true } })
+    return NextResponse.json({ ok: true })
+  } catch {
+    return NextResponse.json(
+      { error: 'Pengajuan belum terhapus. Muat ulang daftar.' },
+      { status: 400 },
+    )
   }
 }

@@ -59,6 +59,14 @@ export function isValidLabTimeSlot(value: string): boolean {
   return LAB_TIME_SLOT_OPTIONS.some(o => o.value === value)
 }
 
+export function parseLabTimeSlots(value: unknown): string[] | null {
+  if (!Array.isArray(value) || !value.length || value.length > LAB_TIME_SLOT_VALUES.length)
+    return null
+  const selected = new Set(value)
+  const slots = LAB_TIME_SLOT_VALUES.filter((slot) => selected.has(slot))
+  return slots.length === value.length ? slots : null
+}
+
 /**
  * Map query param (e.g. from /booking?time=09:30) to a canonical slot value.
  * Accepts minor variants like `9:30` → `09:30` when it matches a lab slot.

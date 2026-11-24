@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { COOKIE_NAME, verifyAdminSessionTokenNode } from '@/lib/admin-session'
+import { requireAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-function isAuthorized(request: NextRequest): boolean {
-  const token = request.cookies.get(COOKIE_NAME)?.value
-  return verifyAdminSessionTokenNode(token)
-}
-
-export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) {
-    return NextResponse.json({ error: 'Tidak diizinkan' }, { status: 401 })
-  }
+export async function GET() {
+  const denied = await requireAdmin()
+  if (denied) return denied
 
   try {
     const items = await prisma.labGallery.findMany({
@@ -24,9 +18,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) {
-    return NextResponse.json({ error: 'Tidak diizinkan' }, { status: 401 })
-  }
+  const denied = await requireAdmin()
+  if (denied) return denied
 
   try {
     const body = await request.json()

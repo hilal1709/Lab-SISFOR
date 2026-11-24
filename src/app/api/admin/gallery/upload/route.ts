@@ -2,19 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { promises as fs } from 'fs'
 import path from 'path'
 import { randomUUID } from 'crypto'
-import { COOKIE_NAME, verifyAdminSessionTokenNode } from '@/lib/admin-session'
+import { requireAdmin } from '@/lib/auth'
 
 const ALLOWED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp'])
 
-function isAuthorized(request: NextRequest): boolean {
-  const token = request.cookies.get(COOKIE_NAME)?.value
-  return verifyAdminSessionTokenNode(token)
-}
-
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) {
-    return NextResponse.json({ error: 'Tidak diizinkan' }, { status: 401 })
-  }
+  const denied = await requireAdmin()
+  if (denied) return denied
 
   try {
     const formData = await request.formData()
@@ -26,7 +20,10 @@ export async function POST(request: NextRequest) {
 
     const extension = path.extname(file.name).toLowerCase()
     if (!ALLOWED_EXTENSIONS.has(extension)) {
-      return NextResponse.json({ error: 'Hanya png, jpg, jpeg, webp yang diizinkan' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Hanya png, jpg, jpeg, webp yang diizinkan' },
+        { status: 400 },
+      )
     }
 
     const bytes = await file.arrayBuffer()

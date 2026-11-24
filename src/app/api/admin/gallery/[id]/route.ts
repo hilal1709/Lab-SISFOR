@@ -1,19 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { COOKIE_NAME, verifyAdminSessionTokenNode } from '@/lib/admin-session'
+import { requireAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-function isAuthorized(request: NextRequest): boolean {
-  const token = request.cookies.get(COOKIE_NAME)?.value
-  return verifyAdminSessionTokenNode(token)
-}
-
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  if (!isAuthorized(request)) {
-    return NextResponse.json({ error: 'Tidak diizinkan' }, { status: 401 })
-  }
+export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+  const denied = await requireAdmin()
+  if (denied) return denied
 
   try {
     await prisma.labGallery.delete({

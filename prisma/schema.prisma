@@ -14,9 +14,11 @@ model Booking {
   id        String     @id @default(cuid())
   fullName  String
   studentId String
+  borrowerType String @default("mahasiswa")
   prodi     String   @default("")
   date      DateTime
   timeSlot  String
+  timeSlots String[]   @default([])
   purpose   String
   korinFilename String?
   korinData     String?

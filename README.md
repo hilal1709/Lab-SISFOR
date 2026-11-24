@@ -1,6 +1,6 @@
 # SISFOR Lab Booking System
 
-Sistem peminjaman lab dengan UI neo brutalism menggunakan Next.js, PostgreSQL, shadcn/ui, GSAP, dan anime.js
+Sistem peminjaman lab dengan UI neo brutalism menggunakan Next.js, PostgreSQL, shadcn/ui, Aceternity UI, dan Auth.js
 
 ## Fitur
 
@@ -17,9 +17,9 @@ Sistem peminjaman lab dengan UI neo brutalism menggunakan Next.js, PostgreSQL, s
 - **Backend**: Next.js API Routes
 - **Database**: PostgreSQL
 - **UI Components**: shadcn/ui, Tailwind CSS
-- **Animations**: GSAP, anime.js
+- **Animations**: GSAP, Swiper, Anime.js, AOS, dan Lottie
 - **ORM**: Prisma
-- **Form Validation**: React Hook Form, Zod
+- **Autentikasi admin**: Auth.js Credentials dengan sesi JWT 24 jam
 
 ## Prerequisites
 
@@ -48,8 +48,11 @@ CREATE DATABASE sisfor_lab;
 Edit `.env.local`:
 
 ```
-DATABASE_URL="postgresql://postgres:hilal123@localhost:5432/sisfor_lab"
-NEXTAUTH_SECRET="your-secret-key-generate-with-openssl-rand-base64-32"
+DATABASE_URL="postgresql://username:password@localhost:5432/sisfor_lab"
+NEXTAUTH_URL="http://localhost:3000"
+AUTH_SECRET="<secret acak unik>"
+ADMIN_ID="<id admin>"
+ADMIN_KEY="<kata sandi admin>"
 ```
 
 ### 4. Initialize Database
@@ -96,10 +99,11 @@ prisma/
 
 ### Booking Table
 - `id` - Unique identifier (cuid)
-- `fullName` - Student full name
-- `studentId` - Student ID
+- `fullName` - Nama lengkap peminjam
+- `borrowerType` - `mahasiswa` atau `dosen`
+- `studentId` - NIM, NIDN, atau NIP yang disimpan dengan nama kolom lama
 - `date` - Booking date
-- `timeSlot` - Booking time (e.g., "09:30")
+- `timeSlots` - Daftar jam mulai sesi. `timeSlot` tetap berisi jam pertama untuk kompatibilitas.
 - `purpose` - Purpose of lab usage
 - `status` - pending | approved | rejected
 - `createdAt` - Created timestamp
@@ -116,7 +120,7 @@ prisma/
 ## API Endpoints
 
 ### GET /api/bookings
-Fetch semua bookings
+Daftar pengajuan khusus admin. Tambahkan `?date=YYYY-MM-DD` untuk jadwal publik yang mengembalikan `{ "timeSlot": "09:30" }` per sesi terisi.
 
 **Response:**
 ```json
@@ -125,8 +129,10 @@ Fetch semua bookings
     "id": "...",
     "fullName": "John Doe",
     "studentId": "s-12345678",
+    "borrowerType": "mahasiswa",
     "date": "2026-05-10",
     "timeSlot": "09:30",
+    "timeSlots": ["09:30", "11:30", "12:30"],
     "purpose": "Research",
     "status": "pending",
     "createdAt": "...",
@@ -136,24 +142,26 @@ Fetch semua bookings
 ```
 
 ### POST /api/bookings
-Create new booking
+Ajukan satu atau beberapa sesi pada satu tanggal. Kirim `timeSlots` sebagai array JSON atau ulangi field `timeSlots` dalam `multipart/form-data` untuk menyertakan lampiran. Field `timeSlot` dan `studentId` dari klien lama tetap diterima.
 
 **Request:**
 ```json
 {
   "fullName": "John Doe",
-  "studentId": "s-12345678",
+  "borrowerType": "mahasiswa",
+  "borrowerId": "s-12345678",
+  "prodi": "sistem-informasi",
   "date": "2026-05-10",
-  "timeSlot": "09:30",
-  "purpose": "Research on polymer synthesis"
+  "timeSlots": ["09:30", "11:30", "12:30"],
+  "purpose": "Praktikum basis data"
 }
 ```
 
 ### GET /api/bookings/[id]
-Get specific booking
+Ringkasan publik berdasarkan ID berisi ID, tanggal, daftar sesi, dan satu status pengajuan.
 
 ### PATCH /api/bookings/[id]
-Update booking status
+Perbarui pengajuan dengan sesi admin.
 
 **Request:**
 ```json
@@ -163,53 +171,17 @@ Update booking status
 ```
 
 ### DELETE /api/bookings/[id]
-Delete booking
+Hapus pengajuan dengan sesi admin.
 
-## Usage
+## Penggunaan
 
-### For Users
+Mahasiswa dan dosen memilih **Lihat jadwal**, membuka sesi yang tersedia, lalu dapat menambahkan sesi lain pada tanggal yang sama. Surat Korin opsional untuk semua peminjam dan menerima PDF, DOC, atau DOCX. KTM opsional untuk mahasiswa. Simpan satu ID dari bukti pengajuan untuk membuka **Cek status**.
 
-1. Klik "SCHEDULE" di homepage untuk melihat jadwal
-2. Pilih tanggal dan lihat ketersediaan time slot
-3. Klik time slot yang tersedia untuk membuat booking
-4. Isi form booking dengan data lengkap
-5. Klik "SUBMIT BOOKING"
-6. Tunggu approval dari admin
+Admin masuk melalui `/admin/login` dengan ID dan kata sandi yang dikonfigurasi di server. Buka **Detail** pada antrean untuk mengunduh lampiran, menyetujui, menolak, atau menghapus pengajuan. Galeri menerima unggahan foto dan URL gambar.
 
-### For Admin
+## Desain dan konfigurasi
 
-1. Klik "ADMIN" untuk masuk ke dashboard
-2. Lihat semua pending bookings
-3. Filter by status (pending, approved, rejected)
-4. Klik "APPROVE" untuk menerima atau "REJECT" untuk menolak
-5. Lihat statistik bookings
-
-## Design Features
-
-- **Neo Brutalism**: Bold borders, strong typography, high contrast
-- **Color Scheme**: 
-  - Primary: Lime (#a3e635)
-  - Background: Dark gray (#0f0f0f, #1a1a1a)
-  - Accents: White (#ffffff)
-- **Animations**:
-  - Page transitions dengan GSAP
-  - Staggered element animations dengan anime.js
-  - Interactive hover effects
-  - Smooth micro-interactions
-
-## Customization
-
-### Update Colors
-
-Edit `tailwind.config.js`:
-```js
-colors: {
-  lime: {
-    400: '#a3e635',
-    500: '#84cc16',
-  }
-}
-```
+Palet Bata & Pasir, tipografi, serta status interaktif diatur di `src/globals.css`. Ikon Potlab dan ilustrasi komputer Lottie disajikan dari folder `public`.
 
 ### Change PostgreSQL Credentials
 
@@ -220,13 +192,7 @@ DATABASE_URL="postgresql://username:password@localhost:5432/database_name"
 
 ### Modify Time Slots
 
-Update array di `src/app/schedule/page.tsx`:
-```typescript
-const [slots, setSlots] = useState<TimeSlot[]>([
-  { time: '07:30', available: true },
-  // ...
-])
-```
+Ubah daftar sesi di `src/lib/lab-time-slots.ts`. Semua tanggal jadwal menggunakan WIB.
 
 ## Deployment
 
@@ -244,7 +210,7 @@ vercel
 npm run build
 ```
 
-2. Deploy `out/` directory
+2. Jalankan `npm start` dengan URL aplikasi dan konfigurasi database yang sesuai.
 
 **Note**: Pastikan PostgreSQL tersedia di production
 
@@ -269,7 +235,7 @@ psql -U postgres -c "select 1"
 
 2. Verify `DATABASE_URL` in `.env.local`
 
-3. Check credentials: `postgres:hilal123`
+3. Cocokkan kredensial pada `DATABASE_URL` dengan akun database.
 
 ### Prisma Migration Error
 
@@ -293,7 +259,7 @@ npx prisma migrate dev --name fix_migration_name
 ⚠️ **Important**: 
 - Change default password di production
 - Use HTTPS untuk production
-- Implement authentication untuk admin panel
+- Atur `AUTH_SECRET`, `ADMIN_ID`, dan `ADMIN_KEY` pada environment server. Setelah migrasi dari sesi lama, admin perlu masuk kembali.
 - Validate semua user inputs di backend
 - Use environment variables untuk sensitive data
 

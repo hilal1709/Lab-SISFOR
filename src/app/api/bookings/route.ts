@@ -1,122 +1,150 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { isValidLabTimeSlot } from '@/lib/lab-time-slots'
+import { requireAdmin } from '@/lib/auth'
+import {
+  adminFields, BOOKING_ATTACHMENT_LIMIT, bookingTimeSlots, receiptFields, withBookingTimeSlots,
+} from '@/lib/booking'
+import { bookingDay, bookingTransaction, findBookingConflict } from '@/lib/booking-db'
+import { parseLabTimeSlots } from '@/lib/lab-time-slots'
+import { validDate } from '@/lib/lab-date'
 import { prisma } from '@/lib/prisma'
-import { Prisma } from '@prisma/client'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const dateParam = request.nextUrl.searchParams.get('date')
-
-    if (dateParam) {
-      const startDate = new Date(dateParam + 'T00:00:00Z')
-      const endDate = new Date(dateParam + 'T23:59:59Z')
-
-      const bookings = await prisma.booking.findMany({
+    const day = request.nextUrl.searchParams.get('date')
+    if (day !== null) {
+      if (!validDate(day))
+        return NextResponse.json({ error: 'Tanggal tidak valid.' }, { status: 400 })
+      const rows = await prisma.booking.findMany({
         where: {
-          date: {
-            gte: startDate,
-            lte: endDate,
-          },
+          date: bookingDay(day),
+          status: { not: 'rejected' },
         },
-        orderBy: { createdAt: 'desc' },
+        select: { timeSlot: true, timeSlots: true },
       })
-      return NextResponse.json(bookings)
+      const occupied = [...new Set(rows.flatMap(bookingTimeSlots))]
+      return NextResponse.json(occupied.map((timeSlot) => ({ timeSlot })))
     }
-
-    const bookings = await prisma.booking.findMany({
-      orderBy: { createdAt: 'desc' },
-    })
-    return NextResponse.json(bookings)
-  } catch (error) {
-    console.error('GET bookings error:', error)
-    return NextResponse.json({ error: 'Gagal mengambil data pemesanan' }, { status: 500 })
+    const denied = await requireAdmin()
+    if (denied) return denied
+    const rows = await prisma.booking.findMany({ orderBy: { createdAt: 'desc' }, select: adminFields })
+    return NextResponse.json(rows.map(withBookingTimeSlots))
+  } catch {
+    return NextResponse.json({ error: 'Data peminjaman belum bisa dimuat.' }, { status: 503 })
   }
+}
+
+const formats = {
+  pdf: { mime: 'application/pdf', signature: '255044462d' },
+  doc: { mime: 'application/msword', signature: 'd0cf11e0a1b11ae1' },
+  docx: {
+    mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    signature: '504b0304',
+  },
+  jpg: { mime: 'image/jpeg', signature: 'ffd8ff' },
+  jpeg: { mime: 'image/jpeg', signature: 'ffd8ff' },
+  png: { mime: 'image/png', signature: '89504e470d0a1a0a' },
+}
+
+async function attachment(
+  file: FormDataEntryValue | null,
+  kind: 'ktm' | 'korin',
+): Promise<{ error?: string; name?: string; data?: string }> {
+  if (!file || (typeof file !== 'string' && !file.name && !file.size)) return {}
+  const label = kind === 'ktm' ? 'Foto KTM' : 'Surat Korin'
+  const formatError = {
+    error: `${label} harus berupa ${kind === 'ktm' ? 'JPG atau PNG' : 'PDF, DOC, atau DOCX'}.`,
+  }
+  if (typeof file === 'string' || !file.size) return formatError
+  if (file.size > BOOKING_ATTACHMENT_LIMIT) return { error: `Ukuran ${label} maksimal 2 MB.` }
+  const extension = file.name.match(/\.([a-z]+)$/i)?.[1].toLowerCase() ?? ''
+  const allowed = kind === 'ktm' ? ['jpg', 'jpeg', 'png'] : ['pdf', 'doc', 'docx']
+  if (!allowed.includes(extension)) return formatError
+  const { mime, signature } = formats[extension as keyof typeof formats]
+  const bytes = Buffer.from(await file.arrayBuffer())
+  if (!bytes.subarray(0, signature.length / 2).equals(Buffer.from(signature, 'hex')) ||
+    (extension === 'docx' && !bytes.includes('word/document.xml')))
+    return formatError
+  return { name: file.name, data: `data:${mime};base64,${bytes.toString('base64')}` }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    let fullName = ''
-    let studentId = ''
-    let prodi = ''
-    let purpose = ''
-    let timeSlot = ''
-    let date = new Date('')
-    let korinFilename: string | undefined
-    let korinData: string | undefined
-    let ktmFilename: string | undefined
-    let ktmData: string | undefined
-
-    const contentType = request.headers.get('content-type') || ''
-    if (contentType.includes('multipart/form-data')) {
-      const fd = await request.formData()
-      fullName = (fd.get('fullName') as string) || ''
-      studentId = (fd.get('studentId') as string) || ''
-      prodi = (fd.get('prodi') as string) || ''
-      purpose = (fd.get('purpose') as string) || ''
-      timeSlot = (fd.get('timeSlot') as string) || ''
-      const dateStr = (fd.get('date') as string) || ''
-      date = typeof dateStr === 'string' ? new Date(`${dateStr}T00:00:00Z`) : new Date('')
-
-      const korin = fd.get('korin') as File | null
-      if (korin && typeof (korin as any).arrayBuffer === 'function') {
-        const buf = Buffer.from(await korin.arrayBuffer())
-        korinData = `data:${korin.type};base64,${buf.toString('base64')}`
-        korinFilename = (korin as any).name
-      }
-
-      const ktm = fd.get('ktm') as File | null
-      if (ktm && typeof (ktm as any).arrayBuffer === 'function') {
-        const buf = Buffer.from(await ktm.arrayBuffer())
-        ktmData = `data:${ktm.type};base64,${buf.toString('base64')}`
-        ktmFilename = (ktm as any).name
-      }
-    } else {
-      const body = await request.json()
-      fullName = typeof body.fullName === 'string' ? body.fullName.trim() : ''
-      studentId = typeof body.studentId === 'string' ? body.studentId.trim() : ''
-      prodi = typeof body.prodi === 'string' ? body.prodi.trim() : ''
-      purpose = typeof body.purpose === 'string' ? body.purpose.trim() : ''
-      timeSlot = typeof body.timeSlot === 'string' ? body.timeSlot.trim() : ''
-      date = typeof body.date === 'string' ? new Date(`${body.date}T00:00:00Z`) : new Date('')
+    const multipart = request.headers.get('content-type')?.includes('multipart/form-data')
+    const form = multipart ? await request.formData().catch(() => null) : null
+    const input: unknown = multipart ? form : await request.json().catch(() => null)
+    if (!input || typeof input !== 'object' || Array.isArray(input))
+      return NextResponse.json({ error: 'Data pengajuan tidak valid.' }, { status: 400 })
+    const get = (key: string): unknown =>
+      form ? form.get(key) : (input as Record<string, unknown>)[key]
+    const field = (key: string): string => {
+      const value = get(key)
+      return typeof value === 'string' ? value.trim() : ''
     }
-
-    if (!fullName || !studentId || !prodi || !purpose) {
-      return NextResponse.json({ error: 'Semua field wajib diisi' }, { status: 400 })
-    }
-
-    if (!isValidLabTimeSlot(timeSlot)) {
-      return NextResponse.json({ error: 'Sesi waktu tidak valid' }, { status: 400 })
-    }
-
-    if (Number.isNaN(date.getTime())) {
-      return NextResponse.json({ error: 'Tanggal tidak valid' }, { status: 400 })
-    }
-
-    const booking = await prisma.booking.create({
-      data: {
-        fullName,
-        studentId,
-        prodi,
-        date,
-        timeSlot,
-        purpose,
-        status: 'pending',
-        ...(korinFilename && { korinFilename }),
-        ...(korinData && { korinData }),
-        ...(ktmFilename && { ktmFilename }),
-        ...(ktmData && { ktmData }),
-      },
-    })
-
-    return NextResponse.json(booking, { status: 201 })
-  } catch (error) {
-    console.error('POST booking error:', error)
-    if (error instanceof Prisma.PrismaClientInitializationError) {
+    const rawBorrowerType = get('borrowerType')
+    const borrowerType = (form ? rawBorrowerType === null : rawBorrowerType === undefined)
+      ? 'mahasiswa'
+      : field('borrowerType')
+    const fullName = field('fullName'),
+      studentId = field('borrowerId') || field('studentId'),
+      prodi = field('prodi'),
+      purpose = field('purpose')
+    const day = field('date')
+    const requestedSlots = form ? form.getAll('timeSlots') : get('timeSlots')
+    const hasTimeSlots = form ? form.has('timeSlots') : requestedSlots !== undefined
+    const timeSlots = parseLabTimeSlots(hasTimeSlots ? requestedSlots : [field('timeSlot')])
+    if (
+      !fullName ||
+      !studentId ||
+      !prodi ||
+      !purpose ||
+      !validDate(day) ||
+      (borrowerType !== 'mahasiswa' && borrowerType !== 'dosen') ||
+      !timeSlots
+    ) {
       return NextResponse.json(
-        { error: 'Koneksi database gagal. Cek DATABASE_URL di deployment.' },
-        { status: 500 }
+        { error: 'Periksa identitas, tanggal, sesi, dan keperluan peminjaman.' },
+        { status: 400 },
       )
     }
-    return NextResponse.json({ error: 'Gagal membuat pemesanan' }, { status: 500 })
+    const ktm = await attachment(
+      borrowerType === 'mahasiswa' ? form?.get('ktm') ?? null : null,
+      'ktm',
+    )
+    const korin = await attachment(form?.get('korin') ?? null, 'korin')
+    if (ktm.error || korin.error)
+      return NextResponse.json({ error: ktm.error || korin.error }, { status: 400 })
+
+    const result = await bookingTransaction(async (tx) => {
+      if (await findBookingConflict(tx, day, timeSlots)) return null
+      return tx.booking.create({
+        data: {
+          fullName,
+          studentId,
+          borrowerType,
+          prodi,
+          purpose,
+          date: bookingDay(day).gte,
+          timeSlot: timeSlots[0],
+          timeSlots,
+          ktmFilename: ktm.name,
+          ktmData: ktm.data,
+          korinFilename: korin.name,
+          korinData: korin.data,
+        },
+        select: receiptFields,
+      })
+    })
+    if (result) return NextResponse.json(result, { status: 201 })
+  } catch {
+    return NextResponse.json(
+      { error: 'Pengajuan belum tersimpan. Periksa koneksi lalu coba lagi.' },
+      { status: 503 },
+    )
   }
+  return NextResponse.json(
+    { error: 'Sesi baru saja terisi. Silakan pilih sesi lain.' },
+    { status: 409 },
+  )
 }
